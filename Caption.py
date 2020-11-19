@@ -19,7 +19,7 @@ embedding_dim = 256
 units = 512
 vocab_size = top_k + 1
 attention_features_shape = 64
-checkpoint_path = "./checkpoints/train"
+checkpoint_path = "/checkpoints/train"
 
 
 def get_image_path(defualt_url=
@@ -203,6 +203,7 @@ def plot_attention(image, result, attention_plot):
 
 
 def main(image_to_caption):
+    print(os.path.abspath(checkpoint_path))
     for i in trained_model_path:
         tf.keras.utils.get_file(
             i.split("/")[-1], i, cache_subdir=os.path.abspath(checkpoint_path))
