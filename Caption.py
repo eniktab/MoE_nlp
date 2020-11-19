@@ -207,14 +207,14 @@ def main(image_to_caption):
         tf.keras.utils.get_file(
             i.split("/")[-1], i, cache_subdir=os.path.abspath(checkpoint_path))
 
-    with open("./checkpoints/train/train_captions", 'rb') as pickle_file:
-        train_captions = pickle.load(pickle_file)
+    #with open("./checkpoints/train/train_captions", 'rb') as pickle_file:
+    #    train_captions = pickle.load(pickle_file)
 
     image_path = image_to_caption
-    result, attention_plot = evaluate(image_path)
-    plot_attention(image_path, result, attention_plot)
-    result = " ".join(result).replace(' <end>', ".")
-    print('\n\n\n Predicted Caption: \n {} \n\n\n'.format(result))
+    #result, attention_plot = evaluate(image_path)
+    #plot_attention(image_path, result, attention_plot)
+    #result = " ".join(result).replace(' <end>', ".")
+    #print('\n\n\n Predicted Caption: \n {} \n\n\n'.format(result))
 
 
 if __name__ == "__main__":
