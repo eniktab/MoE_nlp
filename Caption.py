@@ -6,7 +6,7 @@ checkpoint_path = "./checkpoints/train"
 import tensorflow as tf
 import numpy as np
 import pickle
-#from google.colab import files
+from google.colab import files
 from PIL import Image
 import random
 
@@ -22,7 +22,7 @@ def get_image_path(defualt_url=
                     'https://raw.githubusercontent.com/eniktab/MoE_nlp/main/1.jpg'):
     """ upload an image on the hard disk or get a file from url"""
 
-    image_url = "" #files.upload()
+    image_url = files.upload()
     # image_url= input("Set your image path: you can upload it at this website " \
     #                "\n get the link from --->>> https://imgur.com/upload \n " \
     #                "then copy past the link in this box --->>>  ")
