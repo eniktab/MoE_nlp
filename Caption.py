@@ -13,6 +13,12 @@ trained_model_path = ["https://storage.googleapis.com/bucket-1-free/train/checkp
                       "https://storage.googleapis.com/bucket-1-free/train/ckpt-13.index",
                       "https://storage.googleapis.com/bucket-1-free/train_captions"]
 
+image_model = tf.keras.applications.InceptionV3(include_top=False,
+                                                weights='imagenet')
+new_input = image_model.input
+hidden_layer = image_model.layers[-1].output
+image_features_extract_model = tf.keras.Model(new_input, hidden_layer)
+
 random.seed(4)
 top_k = 5000
 embedding_dim = 256
@@ -20,6 +26,18 @@ units = 512
 vocab_size = top_k + 1
 attention_features_shape = 64
 checkpoint_path = "/checkpoints/train"
+
+loss_object = tf.keras.losses.SparseCategoricalCrossentropy(
+    from_logits=True, reduction='none')
+
+with open("./checkpoints/train/train_captions", 'rb') as pickle_file:
+    train_captions = pickle.load(pickle_file)
+
+tokenizer = tf.keras.preprocessing.text.Tokenizer(num_words=top_k,
+                                                  oov_token="<unk>",
+                                                  filters='!"#$%&()*+.,-/:;=?@[\]^_`{|}~ ')
+tokenizer.fit_on_texts(train_captions)
+train_seqs = tokenizer.texts_to_sequences(train_captions)
 
 
 def get_image_path(defualt_url=
@@ -49,13 +67,6 @@ def load_image(image_path):
     img = tf.image.resize(img, (299, 299))
     img = tf.keras.applications.inception_v3.preprocess_input(img)
     return img, image_path
-
-
-image_model = tf.keras.applications.InceptionV3(include_top=False,
-                                                weights='imagenet')
-new_input = image_model.input
-hidden_layer = image_model.layers[-1].output
-image_features_extract_model = tf.keras.Model(new_input, hidden_layer)
 
 
 class BahdanauAttention(tf.keras.Model):
@@ -117,10 +128,6 @@ class RNN_Decoder(tf.keras.Model):
         return tf.zeros((batch_size, self.units))
 
 
-loss_object = tf.keras.losses.SparseCategoricalCrossentropy(
-    from_logits=True, reduction='none')
-
-
 def loss_function(real, pred):
     mask = tf.math.logical_not(tf.math.equal(real, 0))
     loss_ = loss_object(real, pred)
@@ -131,30 +138,7 @@ def loss_function(real, pred):
     return tf.reduce_mean(loss_)
 
 
-tokenizer = tf.keras.preprocessing.text.Tokenizer(num_words=top_k,
-                                                  oov_token="<unk>",
-                                                  filters='!"#$%&()*+.,-/:;=?@[\]^_`{|}~ ')
-with open("./checkpoints/train/train_captions", 'rb') as pickle_file:
-    train_captions = pickle.load(pickle_file)
-
-tokenizer.fit_on_texts(train_captions)
-train_seqs = tokenizer.texts_to_sequences(train_captions)
-max_length = calc_max_length(train_seqs)
-
-encoder = CNN_Encoder(embedding_dim)
-decoder = RNN_Decoder(embedding_dim, units, vocab_size)
-optimizer = tf.keras.optimizers.Adam()
-
-checkpoint_path = "./checkpoints/train"
-ckpt = tf.train.Checkpoint(encoder=encoder,
-                           decoder=decoder,
-                           optimizer=optimizer)
-ckpt_manager = tf.train.CheckpointManager(ckpt, checkpoint_path, max_to_keep=5)
-
-ckpt.restore(ckpt_manager.latest_checkpoint).expect_partial()
-
-
-def evaluate(image):
+def evaluate(image, encoder, decoder, max_length):
     attention_plot = np.zeros((max_length, attention_features_shape))
 
     hidden = decoder.reset_state(batch_size=1)
@@ -203,19 +187,27 @@ def plot_attention(image, result, attention_plot):
 
 
 def main(image_to_caption):
-    print(os.path.abspath(checkpoint_path))
     for i in trained_model_path:
         tf.keras.utils.get_file(
             i.split("/")[-1], i, cache_subdir=os.path.abspath(checkpoint_path))
 
-    #with open("./checkpoints/train/train_captions", 'rb') as pickle_file:
-    #    train_captions = pickle.load(pickle_file)
+    max_length = calc_max_length(train_seqs)
+    encoder = CNN_Encoder(embedding_dim)
+    decoder = RNN_Decoder(embedding_dim, units, vocab_size)
+    optimizer = tf.keras.optimizers.Adam()
+
+    ckpt = tf.train.Checkpoint(encoder=encoder,
+                               decoder=decoder,
+                               optimizer=optimizer)
+    ckpt_manager = tf.train.CheckpointManager(ckpt, checkpoint_path, max_to_keep=5)
+
+    ckpt.restore(ckpt_manager.latest_checkpoint).expect_partial()
 
     image_path = image_to_caption
-    #result, attention_plot = evaluate(image_path)
-    #plot_attention(image_path, result, attention_plot)
-    #result = " ".join(result).replace(' <end>', ".")
-    #print('\n\n\n Predicted Caption: \n {} \n\n\n'.format(result))
+    result, attention_plot = (image_path, encoder, decoder, max_length)
+    plot_attention(image_path, result, attention_plot)
+    result = " ".join(result).replace(' <end>', ".")
+    print('\n\n\n Predicted Caption: \n {} \n\n\n'.format(result))
 
 
 if __name__ == "__main__":
