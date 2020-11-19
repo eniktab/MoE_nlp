@@ -1,22 +1,3 @@
-
-    
-def get_image_path (defualt_url=
-                    'https://raw.githubusercontent.com/eniktab/MoE_nlp/main/1.jpg'):
-  """ upload an image on the hard disk or get a file from url"""
-  
-  image_url = files.upload()
-  #image_url= input("Set your image path: you can upload it at this website " \
-  #                "\n get the link from --->>> https://imgur.com/upload \n " \
-  #                "then copy past the link in this box --->>>  ")
-  image_path = str(*image_url.keys())
-  if len(image_path) < 1:
-    print("Using the defualt image. Thank you Philip for your contribution!")
-    image_path = defualt_url
-    image_path = tf.keras.utils.get_file(defualt_url.split(r"/")[0],
-                                     origin=defualt_url)
-  return  image_path
-
-
 def calc_max_length(tensor):
     return max(len(t) for t in tensor)
 
@@ -203,12 +184,11 @@ def main():
   with open("./checkpoints/train/train_captions", 'rb') as pickle_file:
       train_captions = pickle.load(pickle_file)
       
-    image_path = get_image_path()
-    result, attention_plot = evaluate(image_path)
-    plot_attention(image_path, result, attention_plot)
-    result= " ".join(result).replace(' <end>', ".")
-    print ('\n\n\n Predicted Caption: \n {} \n\n\n'.format(result))
+  image_path = get_image_path()
+  result, attention_plot = evaluate(image_path)
+  plot_attention(image_path, result, attention_plot)
+  result= " ".join(result).replace(' <end>', ".")
+  print ('\n\n\n Predicted Caption: \n {} \n\n\n'.format(result))
 
 if __name__ == "__main__":
     main()
-
