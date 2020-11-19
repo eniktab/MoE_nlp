@@ -1,8 +1,6 @@
 import os
 import matplotlib.pyplot as plt
-import tensorflow as tf
-
-checkpoint_path = "./checkpoints/train"
+import sys
 import tensorflow as tf
 import numpy as np
 import pickle
@@ -10,16 +8,22 @@ from google.colab import files
 from PIL import Image
 import random
 
+trained_model_path = ["https://storage.googleapis.com/bucket-1-free/train/checkpoint",
+                      "https://storage.googleapis.com/bucket-1-free/train/ckpt-13.data-00000-of-00001",
+                      "https://storage.googleapis.com/bucket-1-free/train/ckpt-13.index",
+                      "https://storage.googleapis.com/bucket-1-free/train_captions"]
+
 random.seed(4)
 top_k = 5000
 embedding_dim = 256
 units = 512
 vocab_size = top_k + 1
 attention_features_shape = 64
+checkpoint_path = "./checkpoints/train"
 
 
 def get_image_path(defualt_url=
-                    'https://raw.githubusercontent.com/eniktab/MoE_nlp/main/1.jpg'):
+                   'https://raw.githubusercontent.com/eniktab/MoE_nlp/main/1.jpg'):
     """ upload an image on the hard disk or get a file from url"""
 
     image_url = files.upload()
@@ -32,7 +36,7 @@ def get_image_path(defualt_url=
         image_path = defualt_url
         image_path = tf.keras.utils.get_file(defualt_url.split(r"/")[0],
                                              origin=defualt_url)
-    return  image_path
+    return image_path
 
 
 def calc_max_length(tensor):
@@ -46,11 +50,13 @@ def load_image(image_path):
     img = tf.keras.applications.inception_v3.preprocess_input(img)
     return img, image_path
 
+
 image_model = tf.keras.applications.InceptionV3(include_top=False,
                                                 weights='imagenet')
 new_input = image_model.input
 hidden_layer = image_model.layers[-1].output
 image_features_extract_model = tf.keras.Model(new_input, hidden_layer)
+
 
 class BahdanauAttention(tf.keras.Model):
     def __init__(self, units):
@@ -70,6 +76,7 @@ class BahdanauAttention(tf.keras.Model):
 
         return context_vector, attention_weights
 
+
 class CNN_Encoder(tf.keras.Model):
     def __init__(self, embedding_dim):
         super(CNN_Encoder, self).__init__()
@@ -79,6 +86,7 @@ class CNN_Encoder(tf.keras.Model):
         x = self.fc(x)
         x = tf.nn.relu(x)
         return x
+
 
 class RNN_Decoder(tf.keras.Model):
     def __init__(self, embedding_dim, units, vocab_size):
@@ -108,8 +116,10 @@ class RNN_Decoder(tf.keras.Model):
     def reset_state(self, batch_size):
         return tf.zeros((batch_size, self.units))
 
+
 loss_object = tf.keras.losses.SparseCategoricalCrossentropy(
     from_logits=True, reduction='none')
+
 
 def loss_function(real, pred):
     mask = tf.math.logical_not(tf.math.equal(real, 0))
@@ -119,7 +129,6 @@ def loss_function(real, pred):
     loss_ *= mask
 
     return tf.reduce_mean(loss_)
-
 
 
 tokenizer = tf.keras.preprocessing.text.Tokenizer(num_words=top_k,
@@ -139,10 +148,11 @@ optimizer = tf.keras.optimizers.Adam()
 checkpoint_path = "./checkpoints/train"
 ckpt = tf.train.Checkpoint(encoder=encoder,
                            decoder=decoder,
-                           optimizer = optimizer)
+                           optimizer=optimizer)
 ckpt_manager = tf.train.CheckpointManager(ckpt, checkpoint_path, max_to_keep=5)
 
 ckpt.restore(ckpt_manager.latest_checkpoint).expect_partial()
+
 
 def evaluate(image):
     attention_plot = np.zeros((max_length, attention_features_shape))
@@ -161,7 +171,7 @@ def evaluate(image):
     for i in range(max_length):
         predictions, hidden, attention_weights = decoder(dec_input, features, hidden)
 
-        attention_plot[i] = tf.reshape(attention_weights, (-1, )).numpy()
+        attention_plot[i] = tf.reshape(attention_weights, (-1,)).numpy()
 
         predicted_id = tf.random.categorical(predictions, 1)[0][0].numpy()
         result.append(tokenizer.index_word[predicted_id])
@@ -174,6 +184,7 @@ def evaluate(image):
     attention_plot = attention_plot[:len(result), :]
     return result, attention_plot
 
+
 def plot_attention(image, result, attention_plot):
     temp_image = np.array(Image.open(image))
 
@@ -182,7 +193,7 @@ def plot_attention(image, result, attention_plot):
     len_result = len(result)
     for l in range(len_result):
         temp_att = np.resize(attention_plot[l], (8, 8))
-        ax = fig.add_subplot(len_result//2, len_result//2, l+1)
+        ax = fig.add_subplot(len_result // 2, len_result // 2, l + 1)
         ax.set_title(result[l])
         img = ax.imshow(temp_image)
         ax.imshow(temp_att, cmap='gray', alpha=0.6, extent=img.get_extent())
@@ -190,22 +201,16 @@ def plot_attention(image, result, attention_plot):
     plt.tight_layout()
     plt.show()
 
-def main():
 
-
-    trained_model = ["https://storage.googleapis.com/bucket-1-free/train/checkpoint",
-                     "https://storage.googleapis.com/bucket-1-free/train/ckpt-13.data-00000-of-00001",
-                     "https://storage.googleapis.com/bucket-1-free/train/ckpt-13.index",
-                     "https://storage.googleapis.com/bucket-1-free/train_captions"]
-
-    for i in trained_model:
+def main(image_to_caption):
+    for i in trained_model_path:
         tf.keras.utils.get_file(
             i.split("/")[-1], i, cache_subdir=os.path.abspath(checkpoint_path))
 
     with open("./checkpoints/train/train_captions", 'rb') as pickle_file:
         train_captions = pickle.load(pickle_file)
 
-    image_path = get_image_path()
+    image_path = image_to_caption
     result, attention_plot = evaluate(image_path)
     plot_attention(image_path, result, attention_plot)
     result = " ".join(result).replace(' <end>', ".")
@@ -213,4 +218,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    image_to_caption = str(sys.argv[1])
+    main(image_to_caption)
