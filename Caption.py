@@ -1,3 +1,40 @@
+import os
+import matplotlib.pyplot as plt
+import tensorflow as tf
+
+checkpoint_path = "./checkpoints/train"
+import tensorflow as tf
+import numpy as np
+import pickle
+#from google.colab import files
+from PIL import Image
+import random
+
+random.seed(4)
+top_k = 5000
+embedding_dim = 256
+units = 512
+vocab_size = top_k + 1
+attention_features_shape = 64
+
+
+def get_image_path(defualt_url=
+                    'https://raw.githubusercontent.com/eniktab/MoE_nlp/main/1.jpg'):
+    """ upload an image on the hard disk or get a file from url"""
+
+    image_url = "" #files.upload()
+    # image_url= input("Set your image path: you can upload it at this website " \
+    #                "\n get the link from --->>> https://imgur.com/upload \n " \
+    #                "then copy past the link in this box --->>>  ")
+    image_path = str(*image_url.keys())
+    if len(image_path) < 1:
+        print("Using the defualt image. Thank you Philip for your contribution!")
+        image_path = defualt_url
+        image_path = tf.keras.utils.get_file(defualt_url.split(r"/")[0],
+                                             origin=defualt_url)
+    return  image_path
+
+
 def calc_max_length(tensor):
     return max(len(t) for t in tensor)
 
@@ -16,22 +53,22 @@ hidden_layer = image_model.layers[-1].output
 image_features_extract_model = tf.keras.Model(new_input, hidden_layer)
 
 class BahdanauAttention(tf.keras.Model):
-  def __init__(self, units):
-    super(BahdanauAttention, self).__init__()
-    self.W1 = tf.keras.layers.Dense(units)
-    self.W2 = tf.keras.layers.Dense(units)
-    self.V = tf.keras.layers.Dense(1)
+    def __init__(self, units):
+        super(BahdanauAttention, self).__init__()
+        self.W1 = tf.keras.layers.Dense(units)
+        self.W2 = tf.keras.layers.Dense(units)
+        self.V = tf.keras.layers.Dense(1)
 
-  def call(self, features, hidden):
-    hidden_with_time_axis = tf.expand_dims(hidden, 1)
-    attention_hidden_layer = (tf.nn.tanh(self.W1(features) +
-                                         self.W2(hidden_with_time_axis)))
-    score = self.V(attention_hidden_layer)
-    attention_weights = tf.nn.softmax(score, axis=1)
-    context_vector = attention_weights * features
-    context_vector = tf.reduce_sum(context_vector, axis=1)
+    def call(self, features, hidden):
+        hidden_with_time_axis = tf.expand_dims(hidden, 1)
+        attention_hidden_layer = (tf.nn.tanh(self.W1(features) +
+                                             self.W2(hidden_with_time_axis)))
+        score = self.V(attention_hidden_layer)
+        attention_weights = tf.nn.softmax(score, axis=1)
+        context_vector = attention_weights * features
+        context_vector = tf.reduce_sum(context_vector, axis=1)
 
-    return context_vector, attention_weights
+        return context_vector, attention_weights
 
 class CNN_Encoder(tf.keras.Model):
     def __init__(self, embedding_dim):
@@ -44,44 +81,44 @@ class CNN_Encoder(tf.keras.Model):
         return x
 
 class RNN_Decoder(tf.keras.Model):
-  def __init__(self, embedding_dim, units, vocab_size):
-    super(RNN_Decoder, self).__init__()
-    self.units = units
+    def __init__(self, embedding_dim, units, vocab_size):
+        super(RNN_Decoder, self).__init__()
+        self.units = units
 
-    self.embedding = tf.keras.layers.Embedding(vocab_size, embedding_dim)
-    self.gru = tf.keras.layers.GRU(self.units,
-                                   return_sequences=True,
-                                   return_state=True,
-                                   recurrent_initializer='glorot_uniform')
-    self.fc1 = tf.keras.layers.Dense(self.units)
-    self.fc2 = tf.keras.layers.Dense(vocab_size)
+        self.embedding = tf.keras.layers.Embedding(vocab_size, embedding_dim)
+        self.gru = tf.keras.layers.GRU(self.units,
+                                       return_sequences=True,
+                                       return_state=True,
+                                       recurrent_initializer='glorot_uniform')
+        self.fc1 = tf.keras.layers.Dense(self.units)
+        self.fc2 = tf.keras.layers.Dense(vocab_size)
 
-    self.attention = BahdanauAttention(self.units)
+        self.attention = BahdanauAttention(self.units)
 
-  def call(self, x, features, hidden):
-    context_vector, attention_weights = self.attention(features, hidden)
-    x = self.embedding(x)
-    x = tf.concat([tf.expand_dims(context_vector, 1), x], axis=-1)
-    output, state = self.gru(x)
-    x = self.fc1(output)
-    x = tf.reshape(x, (-1, x.shape[2]))
-    x = self.fc2(x)
-    return x, state, attention_weights
+    def call(self, x, features, hidden):
+        context_vector, attention_weights = self.attention(features, hidden)
+        x = self.embedding(x)
+        x = tf.concat([tf.expand_dims(context_vector, 1), x], axis=-1)
+        output, state = self.gru(x)
+        x = self.fc1(output)
+        x = tf.reshape(x, (-1, x.shape[2]))
+        x = self.fc2(x)
+        return x, state, attention_weights
 
-  def reset_state(self, batch_size):
-    return tf.zeros((batch_size, self.units))
+    def reset_state(self, batch_size):
+        return tf.zeros((batch_size, self.units))
 
 loss_object = tf.keras.losses.SparseCategoricalCrossentropy(
     from_logits=True, reduction='none')
 
 def loss_function(real, pred):
-  mask = tf.math.logical_not(tf.math.equal(real, 0))
-  loss_ = loss_object(real, pred)
+    mask = tf.math.logical_not(tf.math.equal(real, 0))
+    loss_ = loss_object(real, pred)
 
-  mask = tf.cast(mask, dtype=loss_.dtype)
-  loss_ *= mask
+    mask = tf.cast(mask, dtype=loss_.dtype)
+    loss_ *= mask
 
-  return tf.reduce_mean(loss_)
+    return tf.reduce_mean(loss_)
 
 
 
@@ -148,47 +185,32 @@ def plot_attention(image, result, attention_plot):
         ax = fig.add_subplot(len_result//2, len_result//2, l+1)
         ax.set_title(result[l])
         img = ax.imshow(temp_image)
-        ax.imshow(temp_att, cmap='gray', alpha=0.8, extent=img.get_extent())
+        ax.imshow(temp_att, cmap='gray', alpha=0.6, extent=img.get_extent())
 
     plt.tight_layout()
     plt.show()
 
 def main():
-  import os
-  import matplotlib.pyplot as plt
-  import tensorflow as tf
-  checkpoint_path = "./checkpoints/train"
-  import tensorflow as tf
-  import numpy as np
-  import pickle
-  from google.colab import files
-  from PIL import Image
-  import random 
 
-  random.seed(4)
-  top_k = 5000
-  embedding_dim = 256
-  units = 512
-  vocab_size = top_k + 1 
-  attention_features_shape = 64
 
-  trained_model = ["https://storage.googleapis.com/bucket-1-free/train/checkpoint",
-  "https://storage.googleapis.com/bucket-1-free/train/ckpt-13.data-00000-of-00001",
-  "https://storage.googleapis.com/bucket-1-free/train/ckpt-13.index",
-  "https://storage.googleapis.com/bucket-1-free/train_captions"]
+    trained_model = ["https://storage.googleapis.com/bucket-1-free/train/checkpoint",
+                     "https://storage.googleapis.com/bucket-1-free/train/ckpt-13.data-00000-of-00001",
+                     "https://storage.googleapis.com/bucket-1-free/train/ckpt-13.index",
+                     "https://storage.googleapis.com/bucket-1-free/train_captions"]
 
-  for i in trained_model:
-    tf.keras.utils.get_file(
-      i.split("/")[-1], i, cache_subdir=os.path.abspath(checkpoint_path))
-    
-  with open("./checkpoints/train/train_captions", 'rb') as pickle_file:
-      train_captions = pickle.load(pickle_file)
-      
-  image_path = get_image_path()
-  result, attention_plot = evaluate(image_path)
-  plot_attention(image_path, result, attention_plot)
-  result= " ".join(result).replace(' <end>', ".")
-  print ('\n\n\n Predicted Caption: \n {} \n\n\n'.format(result))
+    for i in trained_model:
+        tf.keras.utils.get_file(
+            i.split("/")[-1], i, cache_subdir=os.path.abspath(checkpoint_path))
+
+    with open("./checkpoints/train/train_captions", 'rb') as pickle_file:
+        train_captions = pickle.load(pickle_file)
+
+    image_path = get_image_path()
+    result, attention_plot = evaluate(image_path)
+    plot_attention(image_path, result, attention_plot)
+    result = " ".join(result).replace(' <end>', ".")
+    print('\n\n\n Predicted Caption: \n {} \n\n\n'.format(result))
+
 
 if __name__ == "__main__":
     main()
