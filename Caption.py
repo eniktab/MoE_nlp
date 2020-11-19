@@ -13,7 +13,6 @@ trained_model_path = ["https://storage.googleapis.com/bucket-1-free/train/checkp
                       "https://storage.googleapis.com/bucket-1-free/train/ckpt-13.index",
                       "https://storage.googleapis.com/bucket-1-free/train_captions"]
 
-
 random.seed(4)
 top_k = 5000
 embedding_dim = 256
@@ -178,6 +177,9 @@ def plot_attention(image, result, attention_plot):
 
 
 def main(image_to_caption):
+    if not os.path.exists('/checkpoints/train/'):
+        os.makedirs('/checkpoints/train/')
+
     for i in trained_model_path:
         tf.keras.utils.get_file(
             i.split("/")[-1], i, cache_subdir=os.path.abspath(checkpoint_path))
@@ -203,7 +205,7 @@ def main(image_to_caption):
     ckpt.restore(ckpt_manager.latest_checkpoint).expect_partial()
 
     image_path = image_to_caption
-    result, attention_plot = (image_path, encoder, decoder, max_length, tokenizer)
+    result, attention_plot = evaluate(image_path, encoder, decoder, max_length, tokenizer)
     plot_attention(image_path, result, attention_plot)
     result = " ".join(result).replace(' <end>', ".")
     print('\n\n\n Predicted Caption: \n {} \n\n\n'.format(result))
