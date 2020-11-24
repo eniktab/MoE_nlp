@@ -8,7 +8,7 @@ from google.colab import files
 from PIL import Image
 import random
 
-trained_model_path = ["https://storage.googleapis.com/bucket-1-free/tem/checkpoints/train/checkpoint", 
+trained_model_path = ["https://storage.googleapis.com/bucket-1-free/checkpoint", 
                       "https://storage.googleapis.com/bucket-1-free/tem/checkpoints/train/ckpt-10.data-00000-of-00001",
                       "https://storage.googleapis.com/bucket-1-free/tem/checkpoints/train/ckpt-10.index",
                       "https://storage.googleapis.com/bucket-1-free/tem/lists/train_captions.data"]
