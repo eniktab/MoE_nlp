@@ -9,8 +9,8 @@ from PIL import Image
 import random
 
 trained_model_path = ["https://storage.googleapis.com/bucket-1-free/tem/checkpoints/train/checkpoint",
-                      "https://storage.googleapis.com/bucket-1-free/tem/checkpoints/train/ckpt-6.data-00000-of-00001",
-                      "https://storage.googleapis.com/bucket-1-free/tem/checkpoints/train/ckpt-6.index",
+                      "https://storage.googleapis.com/bucket-1-free/tem/checkpoints/train/ckpt-10.data-00000-of-00001",
+                      "https://storage.googleapis.com/bucket-1-free/tem/checkpoints/train/ckpt-10.index",
                       "https://storage.googleapis.com/bucket-1-free/tem/lists/train_captions.data"]
 
 random.seed(4)
