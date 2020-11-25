@@ -19,7 +19,7 @@ embedding_dim = 256
 units = 512
 vocab_size = top_k + 1
 attention_features_shape = 64
-checkpoint_path = "/checkpoints/train"
+checkpoint_path = "./checkpoints/train"
 
 image_model = tf.keras.applications.InceptionV3(include_top=False,
                                                 weights='imagenet')
