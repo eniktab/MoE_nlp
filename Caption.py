@@ -14,7 +14,7 @@ trained_model_path = ["https://storage.googleapis.com/bucket-1-free/checkpoint",
                       "https://storage.googleapis.com/bucket-1-free/tem/checkpoints/train/train_captions.data"]
 
 random.seed(4)
-top_k = 5000
+top_k = 20000
 embedding_dim = 256
 units = 512
 vocab_size = top_k + 1
