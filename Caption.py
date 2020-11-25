@@ -184,7 +184,7 @@ def main(image_to_caption):
         tf.keras.utils.get_file(
             i.split("/")[-1], i, cache_subdir=os.path.abspath(checkpoint_path))
 
-    with open("/checkpoints/train/train_captions", 'rb') as pickle_file:
+    with open("/content/checkpoints/train/train_captions.data", 'rb') as pickle_file:
         train_captions = pickle.load(pickle_file)
 
     tokenizer = tf.keras.preprocessing.text.Tokenizer(num_words=top_k,
