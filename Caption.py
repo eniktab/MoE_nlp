@@ -10,7 +10,7 @@ import random
 
 trained_model_path = ["https://storage.googleapis.com/bucket-1-free/tem/checkpoints/train/checkpoint", 
                       "https://storage.googleapis.com/bucket-1-free/tem/checkpoints/train/ckpt-25.data-00000-of-00001",
-                      "https://storage.googleapis.com/bucket-1-free/tem/checkpoints/train/ckpt-25.index,
+                      "https://storage.googleapis.com/bucket-1-free/tem/checkpoints/train/ckpt-25.index",
                       "https://storage.googleapis.com/bucket-1-free/tem/checkpoints/train/loss_plots.data",
                       "https://storage.googleapis.com/bucket-1-free/tem/checkpoints/train/train_captions.data",
                       "https://storage.googleapis.com/bucket-1-free/tem/checkpoints/train/train_seqs.data"]
